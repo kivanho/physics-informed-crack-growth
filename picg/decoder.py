@@ -19,7 +19,22 @@ The decoder maps them to curves that are monotone *by construction*:
    transition extension; the surface curve is scaled by the bounded ratio.
 5. The threshold law maps extension to a threshold curve (monotone again).
 6. The event axis becomes cycles: ``N(s) = s * N_physics * exp(warp)`` for
-   ``s <= 1``, with a bounded ``warp``.
+   ``s <= 1``, with a bounded ``warp``. ``N_physics`` is the physics model's
+   cycles to crack nucleation, so the physics sets the time scale and the
+   warp multiplier corrects it.
+
+Because of step 4, the depth front reaches the transition threshold exactly
+at ``s = 1``; an earlier crossing happens only when the surface front is
+scaled above the depth front (terminal ratio > 1). The predicted cycles to
+crack nucleation are therefore essentially ``N_physics * exp(warp)``, and the
+density knots shape the curves rather than move the crossing.
+
+The segment ``s`` in ``(1, 1.2]`` is a short post-transition tail with a fixed
+length of ``post_threshold_cycles`` per unit of ``s`` (2,000 cycles in total).
+No loss term evaluates it, so the last knot (``s = 1.2``) is only weakly
+identified, through the PCHIP slope at ``s = 1``. It is kept so the decoded
+curves continue smoothly past the transition; do not read physical meaning
+into the decoded tail.
 """
 
 from __future__ import annotations
@@ -161,9 +176,9 @@ def decode_extension_curves_tf(
 
 def threshold_from_extension_tf(extension: tf.Tensor, material: SyntheticMaterial = DEFAULT_MATERIAL) -> tf.Tensor:
     a_i = material.intrinsic_length_m
-    a_eh = material.el_haddad_length_m
+    a_r = material.r_curve_length_m
     extension = tf.nn.relu(extension)
-    return material.long_crack_threshold * tf.sqrt((extension + a_i) / (extension + a_i + a_eh))
+    return material.long_crack_threshold * tf.sqrt((extension + a_i) / (extension + a_i + a_r))
 
 
 def cycle_grid_tf(log_warp: tf.Tensor, physics_crossing: tf.Tensor, event_grid: tf.Tensor, config: DecoderConfig) -> tf.Tensor:

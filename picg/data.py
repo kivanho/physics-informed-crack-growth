@@ -1,12 +1,18 @@
 """Synthetic specimen table and event-grid targets.
 
 ``generate_specimen_table`` draws a small fatigue test campaign: initial
-defect sizes, stresses, geometry and defect type, plus an "observed" cycle
-count to the short-to-long crack transition. The observed life is the
-synthetic physics prediction times a systematic, feature-dependent correction
-and log-normal scatter, which mimics a physics model that is directionally
-right but biased. The hybrid network's job is to learn that correction while
-keeping the curve shapes physically plausible.
+defect sizes, stresses, geometry and defect type, plus "observed" cycles to
+crack nucleation (first crossing of the short-to-long-crack transition
+threshold). The observed value is the synthetic physics prediction times a
+systematic, feature-dependent correction and log-normal scatter, which mimics
+a physics model that is directionally right but biased. The hybrid network's
+job is to learn that correction while keeping the curve shapes physically
+plausible.
+
+Unlike the thesis data set (one material, one nominal stress ratio
+R = 0.1), the synthetic campaign draws R from {-1, 0.1, 0.3}. The hidden
+correction is a smooth function of the inputs, so it is easier to learn than
+the real model error.
 
 Run ``python -m picg.data --out examples/synthetic_specimens.csv`` to write a
 table to disk.
@@ -72,7 +78,7 @@ def generate_specimen_table(
     noise_log_std: float = 0.30,
     material: SyntheticMaterial = DEFAULT_MATERIAL,
 ) -> pd.DataFrame:
-    """Draw ``n_specimens`` propagating specimens with an observed life."""
+    """Draw ``n_specimens`` propagating specimens with observed cycles to crack nucleation."""
 
     rng = np.random.default_rng(seed)
     rows: list[dict[str, object]] = []
@@ -112,7 +118,12 @@ def make_event_grid(event_s_max: float = 1.2, n_points: int = 97, knots: tuple[f
 
 
 def event_coordinate_to_cycle(event_s: np.ndarray, crossing_cycle: float, post_threshold_cycles: float) -> np.ndarray:
-    """``s <= 1`` scales with the crossing cycle; ``s > 1`` adds a fixed tail."""
+    """``s <= 1`` scales with the crossing cycle; ``s > 1`` adds a fixed tail.
+
+    The tail covers ``(s - 1) * post_threshold_cycles`` cycles past the
+    crossing (2,000 cycles at ``s = 1.2`` with the defaults). It only keeps
+    the reference curves defined on the whole grid; no loss term uses it.
+    """
 
     event_s = np.asarray(event_s, dtype=float)
     return np.where(

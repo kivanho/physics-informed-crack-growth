@@ -1,7 +1,11 @@
 """End-to-end demo: synthetic specimens -> nested CV -> metrics.
 
-    python -m picg.run            # quick search (a few minutes on a laptop CPU)
-    python -m picg.run --full     # thesis protocol: 8 candidates x 3 inner splits
+    python -m picg.run            # quick search: 4 candidates x 2 inner splits
+    python -m picg.run --full     # full search: 8 candidates x 3 inner splits
+
+The target is the number of cycles to crack nucleation (first crossing of the
+short-to-long-crack transition threshold). On synthetic data the printed
+numbers demonstrate that the pipeline runs; they are not a result.
 """
 
 from __future__ import annotations
@@ -38,14 +42,16 @@ def main() -> None:
         cfg = NestedCVConfig(
             n_inner=2,
             n_loss_profiles=2,
+            include_ablation=False,
             inner_epochs=40,
             inner_patience=8,
             seed=args.seed,
             base=TrainConfig(max_epochs=100, patience=15),
         )
     n_candidates = 2 * cfg.n_loss_profiles
+    source = f"specimens from {args.table}" if args.table else "synthetic specimens"
     print(
-        f"{len(dataset.cycles)} synthetic specimens | {cfg.n_outer} outer folds | "
+        f"{len(dataset.cycles)} {source} | {cfg.n_outer} outer folds | "
         f"{n_candidates} candidates x {cfg.n_inner} inner splits per fold"
     )
     predictions, _ = run_nested_cv(dataset, cfg)
@@ -55,9 +61,9 @@ def main() -> None:
     n = physics["n"]
     change = 100.0 * (hybrid["mae_log"] - physics["mae_log"]) / physics["mae_log"]
     print()
-    print(f"{'model':<22}{'MAE (log)':>11}{'RMSE (log)':>12}{'late':>9}")
-    print(f"{'physics baseline':<22}{physics['mae_log']:>11.3f}{physics['rmse_log']:>12.3f}{physics['late']:>6}/{n}")
-    print(f"{'hybrid decoder':<22}{hybrid['mae_log']:>11.3f}{hybrid['rmse_log']:>12.3f}{hybrid['late']:>6}/{n}")
+    print(f"{'model':<22}{'MAE (log)':>11}{'RMSE (log)':>12}{'bias (log)':>12}{'late':>9}")
+    for label, m in (("physics baseline", physics), ("hybrid decoder", hybrid)):
+        print(f"{label:<22}{m['mae_log']:>11.3f}{m['rmse_log']:>12.3f}{m['bias_log']:>+12.3f}{m['late']:>6}/{n}")
     print(f"MAE change vs physics: {change:+.1f} %   ({time.time() - start:.0f} s)")
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

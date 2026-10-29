@@ -1,21 +1,29 @@
 """Synthetic short-crack physics model.
 
-This is a public stand-in for the proprietary physics model used in the
-original study. It combines two textbook ingredients:
+This is a public stand-in for the physics model used in the original study
+(the industrial partner's implementation of that model is not included). It
+combines two textbook ingredients:
 
-* an El Haddad-type short-crack threshold that rises with crack extension
-  ``delta`` towards the long-crack threshold,
+* a cyclic R-curve: the threshold builds up with crack extension ``delta``
+  from the defect towards the long-crack threshold (Chapetti / McEvily-type
+  behaviour), here with a simple square-root form
 
-      dK_th(delta) = dK_th,LC * sqrt((delta + a_i) / (delta + a_i + a_EH)),
+      dK_th(delta) = dK_th,LC * sqrt((delta + a_i) / (delta + a_i + a_R)),
+
+  where ``a_R`` sets how much extension the build-up needs. The form borrows
+  the shape of the El Haddad relation, but it is written in crack *extension*
+  rather than total crack length, so it acts as an R-curve, not as the
+  El Haddad intrinsic-crack correction;
 
 * a Paris-type growth law driven by the excess of the applied stress-intensity
   range over that threshold, integrated separately for the depth front ``a``
   and the surface front ``c`` of a semi-elliptical (or embedded) defect.
 
-A specimen "transitions" when either front's threshold reaches a fixed
-fraction of the long-crack threshold. The cycle count at that moment is the
-physics-model life prediction, and the threshold-vs-cycle curves are the
-reference shapes the hybrid decoder is regularised towards.
+The short-to-long-crack transition threshold is a fixed fraction of
+``dK_th,LC``. The first cycle at which either front's threshold reaches it is
+the physics prediction of the cycles to crack nucleation, and the
+threshold-vs-cycle curves are the reference shapes the hybrid decoder is
+regularised towards.
 
 All constants are generic illustrative values, not material data.
 """
@@ -32,7 +40,7 @@ class SyntheticMaterial:
     """Illustrative constants for the synthetic short-crack model."""
 
     long_crack_threshold: float = 5.0  # dK_th,LC  [MPa sqrt(m)]
-    el_haddad_length_m: float = 100e-6  # a_EH
+    r_curve_length_m: float = 100e-6  # a_R, extension scale of the threshold build-up
     intrinsic_length_m: float = 5e-6  # a_i, keeps dK_th(0) > 0
     paris_c: float = 1.0e-11  # [m/cycle / (MPa sqrt(m))^m]
     paris_m: float = 3.0
@@ -50,12 +58,12 @@ def transition_threshold(material: SyntheticMaterial = DEFAULT_MATERIAL) -> floa
 
 
 def short_crack_threshold(extension_m: np.ndarray, material: SyntheticMaterial = DEFAULT_MATERIAL) -> np.ndarray:
-    """El Haddad-type threshold as a function of crack extension."""
+    """Cyclic R-curve: threshold as a function of crack extension from the defect."""
 
     extension = np.maximum(np.asarray(extension_m, dtype=float), 0.0)
     a_i = material.intrinsic_length_m
-    a_eh = material.el_haddad_length_m
-    return material.long_crack_threshold * np.sqrt((extension + a_i) / (extension + a_i + a_eh))
+    a_r = material.r_curve_length_m
+    return material.long_crack_threshold * np.sqrt((extension + a_i) / (extension + a_i + a_r))
 
 
 def invert_short_crack_threshold(
@@ -67,9 +75,9 @@ def invert_short_crack_threshold(
     ratio = np.square(np.asarray(threshold, dtype=float) / material.long_crack_threshold)
     valid = np.isfinite(ratio) & (ratio < 1.0)
     a_i = material.intrinsic_length_m
-    a_eh = material.el_haddad_length_m
+    a_r = material.r_curve_length_m
     with np.errstate(divide="ignore", invalid="ignore"):
-        extension = (ratio * (a_i + a_eh) - a_i) / (1.0 - ratio)
+        extension = (ratio * (a_i + a_r) - a_i) / (1.0 - ratio)
     return np.where(valid, np.maximum(extension, 0.0), np.nan), valid
 
 
@@ -120,8 +128,11 @@ def simulate_specimen(
 ) -> dict[str, np.ndarray | float] | None:
     """Integrate both crack fronts until shortly after the transition.
 
-    Returns ``None`` for non-propagating defects (no transition within
-    ``max_cycles``).
+    The integration continues for ``1.05 * post_event_s * post_threshold_cycles``
+    cycles past the first crossing so that the reference curves cover the
+    whole event grid up to ``s = 1 + post_event_s``. Returns ``None`` for
+    non-propagating defects (no transition within ``max_cycles``). The
+    interpolated crossing cycle is computed by ``data.physics_crossing_cycle``.
     """
 
     a = a0_mm * 1e-3
@@ -165,5 +176,4 @@ def simulate_specimen(
         "cycle": data[:, 0],
         "extension_a_m": data[:, 1],
         "extension_c_m": data[:, 2],
-        "crossing_cycle": float(crossing_cycle),
     }

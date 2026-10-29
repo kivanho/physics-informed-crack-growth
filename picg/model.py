@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import random
 from dataclasses import dataclass, replace
 
@@ -41,7 +40,6 @@ class TrainConfig:
     w_ratio: float = 1.0
     w_concavity: float = 1.0
     w_warp: float = 0.1
-    crossing_beta: float = 18.0
     decoder: DecoderConfig = DecoderConfig()
 
     @property
@@ -62,10 +60,17 @@ class TrainConfig:
 
 
 def set_seed(seed: int) -> None:
-    os.environ["PYTHONHASHSEED"] = str(seed)
+    """Seed Python, NumPy and TensorFlow and request deterministic TF ops.
+
+    Reruns on the same machine and TensorFlow version should match; results
+    can still differ slightly across platforms, CPU instruction sets or
+    TensorFlow releases.
+    """
+
     random.seed(seed)
     np.random.seed(seed)
     tf.keras.utils.set_random_seed(seed)
+    tf.config.experimental.enable_op_determinism()
 
 
 @dataclass
@@ -116,20 +121,22 @@ def train_model(train: Batch, grid: np.ndarray, config: TrainConfig, seed: int) 
     knots_t = tf.constant(knot_grid)
     level = transition_threshold()
     tensors = [tf.constant(v, tf.float32) for v in (train.x, train.physics_crossing, train.delta_a, train.delta_c, train.cycles)]
+    ref_threshold = [threshold_from_extension_tf(tensors[2]), threshold_from_extension_tf(tensors[3])]
 
     @tf.function
     def step(idx):
         x, crossing, ref_a, ref_c, cycles = (tf.gather(t, idx) for t in tensors)
+        ref_th_a, ref_th_c = (tf.gather(t, idx) for t in ref_threshold)
         with tf.GradientTape() as tape:
             delta_a, delta_c, th_a, th_c, ratio, log_warp, cycle_grid = _forward(
                 model, x, crossing, grid_t, knots_t, config, training=True
             )
-            pred = losses.soft_first_crossing_cycle(th_a, th_c, cycle_grid, level, config.crossing_beta)
+            pred = losses.first_crossing_cycle(th_a, th_c, cycle_grid, level)
             total = (
                 config.w_cycle * losses.log_cycle_loss(pred, cycles)
                 + config.w_shape * losses.shape_loss(delta_a, delta_c, ref_a, ref_c, grid_t)
                 + config.w_ratio * losses.terminal_ratio_loss(ratio, ref_a, ref_c, grid_t)
-                + config.w_concavity * losses.threshold_concavity_loss(th_a, th_c, grid_t)
+                + config.w_concavity * losses.threshold_concavity_loss(th_a, th_c, ref_th_a, ref_th_c, grid_t)
                 + config.w_warp * losses.warp_size_loss(log_warp, config.decoder.max_log_cycle_warp)
             )
             if model.losses:
@@ -156,27 +163,13 @@ def train_model(train: Batch, grid: np.ndarray, config: TrainConfig, seed: int) 
 
 
 def predict_cycles(model, batch: Batch, grid: np.ndarray, config: TrainConfig) -> np.ndarray:
-    """Hard first crossing of the decoded threshold curves, interpolated."""
+    """Cycles to crack nucleation: the same interpolated first crossing as in training."""
 
     knots_t = tf.constant(np.asarray(config.decoder.knots, dtype=np.float32))
     _, _, th_a, th_c, _, _, cycle_grid = _forward(
         model, tf.constant(batch.x), tf.constant(batch.physics_crossing), tf.constant(grid), knots_t, config, False
     )
-    curve = np.maximum(th_a.numpy(), th_c.numpy())
-    cycle_grid = cycle_grid.numpy()
-    level = transition_threshold()
-    out = np.full(len(curve), np.nan)
-    for i, (values, cycles) in enumerate(zip(curve, cycle_grid)):
-        hit = np.flatnonzero(values >= level - 1e-6)
-        if hit.size == 0:
-            continue
-        j = int(hit[0])
-        if j == 0:
-            out[i] = cycles[0]
-            continue
-        frac = np.clip((level - values[j - 1]) / max(values[j] - values[j - 1], 1e-12), 0.0, 1.0)
-        out[i] = cycles[j - 1] + frac * (cycles[j] - cycles[j - 1])
-    return out
+    return losses.first_crossing_cycle(th_a, th_c, cycle_grid, transition_threshold()).numpy().astype(float)
 
 
 # --------------------------------------------------------------------------
@@ -184,21 +177,32 @@ def predict_cycles(model, batch: Batch, grid: np.ndarray, config: TrainConfig) -
 # --------------------------------------------------------------------------
 
 
-def search_space(base: TrainConfig, n_loss_profiles: int = 4, seed: int = 2026) -> list[TrainConfig]:
-    """Loss-weight profiles (Latin hypercube, log scale) x two backbones."""
+def search_space(
+    base: TrainConfig,
+    n_loss_profiles: int = 4,
+    seed: int = 2026,
+    include_ablation: bool = True,
+) -> list[TrainConfig]:
+    """Loss-weight profiles x two backbones (32 and 32-16 units).
+
+    The ``n_loss_profiles`` profiles are, in order: the default weights; an
+    optional all-minimum ablation (every penalty weight at the bottom of its
+    range, i.e. a nearly unregularised network); and Latin-hypercube samples
+    on a log scale for the remaining slots.
+    """
 
     ranges = {"w_ratio": (1e-2, 10.0), "w_shape": (1e-2, 10.0), "w_concavity": (1e-2, 10.0), "w_warp": (1e-3, 3.0)}
-    rng = np.random.default_rng(seed)
-    n_sampled = max(n_loss_profiles - 2, 1)
-    lhs = np.column_stack([(rng.permutation(n_sampled) + rng.random(n_sampled)) / n_sampled for _ in ranges])
-    profiles = [
-        {"w_ratio": 1.0, "w_shape": 1.0, "w_concavity": 1.0, "w_warp": 0.1},
-        {name: lo for name, (lo, _) in ranges.items()},
-    ]
-    for row in lhs:
-        profiles.append(
-            {name: float(np.exp(np.log(lo) + u * (np.log(hi) - np.log(lo)))) for (name, (lo, hi)), u in zip(ranges.items(), row)}
-        )
+    profiles = [{"w_ratio": 1.0, "w_shape": 1.0, "w_concavity": 1.0, "w_warp": 0.1}]
+    if include_ablation:
+        profiles.append({name: lo for name, (lo, _) in ranges.items()})
+    n_sampled = max(n_loss_profiles - len(profiles), 0)
+    if n_sampled:
+        rng = np.random.default_rng(seed)
+        lhs = np.column_stack([(rng.permutation(n_sampled) + rng.random(n_sampled)) / n_sampled for _ in ranges])
+        for row in lhs:
+            profiles.append(
+                {name: float(np.exp(np.log(lo) + u * (np.log(hi) - np.log(lo)))) for (name, (lo, hi)), u in zip(ranges.items(), row)}
+            )
     backbones = [dict(hidden_units=(32,), dropout_rate=0.0), dict(hidden_units=(32, 16), dropout_rate=0.05)]
     return [replace(base, **arch, **weights) for arch in backbones for weights in profiles[:n_loss_profiles]]
 
@@ -208,6 +212,7 @@ class NestedCVConfig:
     n_outer: int = 5
     n_inner: int = 3
     n_loss_profiles: int = 4
+    include_ablation: bool = True
     inner_epochs: int = 100
     inner_patience: int = 12
     seed: int = 2026
@@ -218,7 +223,8 @@ def _select(scores: pd.DataFrame) -> pd.Series:
     """One-standard-error rule: simplest candidate within 1 SE of the best."""
 
     best = scores.loc[scores["inner_mae"].idxmin()]
-    band = best["inner_mae"] + best["inner_mae_std"] / np.sqrt(max(best["n_inner"], 1))
+    standard_error = best["inner_mae_std"] / np.sqrt(max(best["n_inner"], 1))
+    band = best["inner_mae"] + (standard_error if np.isfinite(standard_error) else 0.0)
     eligible = scores[scores["inner_mae"] <= band]
     return eligible.sort_values(["parameter_count", "inner_mae"], kind="mergesort").iloc[0]
 
@@ -233,7 +239,7 @@ def run_nested_cv(dataset: Dataset, cfg: NestedCVConfig, log=print) -> tuple[pd.
 
     numeric, categorical = feature_columns()
     table, grid = dataset.table, dataset.event_grid
-    candidates = search_space(cfg.base, cfg.n_loss_profiles, cfg.seed)
+    candidates = search_space(cfg.base, cfg.n_loss_profiles, cfg.seed, cfg.include_ablation)
     predictions, all_scores = [], []
     for fold, (train_idx, test_idx) in enumerate(outer_splits(len(table), cfg.n_outer, cfg.seed), start=1):
         rows = []
@@ -252,9 +258,9 @@ def run_nested_cv(dataset: Dataset, cfg: NestedCVConfig, log=print) -> tuple[pd.
                     "outer_fold": fold,
                     "candidate": cand.name,
                     "inner_mae": float(np.mean(maes)),
-                    "inner_mae_std": float(np.std(maes)),
+                    "inner_mae_std": float(np.std(maes, ddof=1)) if len(maes) > 1 else float("nan"),
                     "n_inner": len(maes),
-                    "parameter_count": cand.parameter_count(len(numeric) + 2),
+                    "parameter_count": cand.parameter_count(x_tr.shape[1]),
                 }
             )
         scores = pd.DataFrame(rows)
