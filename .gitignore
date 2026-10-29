@@ -1,0 +1,21 @@
+# environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+
+# never commit real data, experiment outputs or trained models
+data/
+results/
+outputs/
+*.xlsx
+*.keras
+*.h5
+*.pkl
+*.pdf
+*.pptx
+*.csv
+!examples/*.csv
