@@ -156,8 +156,10 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=ROOT / "docs")
     args = parser.parse_args()
     if not args.predictions.exists():
-        raise SystemExit(f"{args.predictions} not found; run `python -m picg.run --out {args.predictions}` first.")
+        raise SystemExit(f"{args.predictions} not found; run `python -m picg.benchmark --out runs/main` and pass --predictions runs/main/predictions.csv.")
     predictions = pd.read_csv(args.predictions)
+    if "hybrid_cycles" not in predictions.columns:  # benchmark output names the column after the variant
+        predictions = predictions.rename(columns={"decoder_cycles": "hybrid_cycles"})
     example = decoder_example()
     args.out_dir.mkdir(parents=True, exist_ok=True)
     for name, theme in THEMES.items():
