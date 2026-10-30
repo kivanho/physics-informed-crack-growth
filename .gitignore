@@ -19,3 +19,7 @@ outputs/
 *.pptx
 *.csv
 !examples/*.csv
+
+# experiment artifacts (manifests, predictions, histories)
+runs/
+artifacts/

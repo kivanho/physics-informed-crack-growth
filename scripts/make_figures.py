@@ -1,6 +1,6 @@
 """Render the README hero figure (light and dark variants) from synthetic data.
 
-    python -m picg.run --out examples/synthetic_blind_predictions.csv   # optional, ~5 min
+    python -m picg.benchmark --out runs/main   # optional; then pass --predictions runs/main/predictions.csv
     python scripts/make_figures.py
 
 Panels:
@@ -50,7 +50,7 @@ def decoder_example(seed: int = 2026) -> dict[str, np.ndarray]:
     numeric, categorical = feature_columns()
     train_idx, test_idx = outer_splits(len(dataset.cycles), 5, seed)[0]
     x_tr, x_te = fit_transform_features(dataset.table, train_idx, test_idx, numeric, categorical)
-    config = TrainConfig(max_epochs=100, patience=15)
+    config = TrainConfig(max_epochs=60)  # fixed budget; the benchmark chooses epochs on inner splits
     model = train_model(_batch(dataset, x_tr, train_idx), dataset.event_grid, config, seed=seed + 1)
 
     # Blind specimen whose physics crossing is closest to the fold median.
