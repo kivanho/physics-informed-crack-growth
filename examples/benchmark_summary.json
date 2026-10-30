@@ -1,0 +1,415 @@
+{
+  "created": "2026-10-30T11:00:19+00:00",
+  "runs": [
+    {
+      "dir": "runs/main",
+      "outer_seed": 2026,
+      "commit": "fbd95d5d300f3786d8443bbb818b6431653c7329",
+      "status": "VALID",
+      "elapsed_seconds": 3147.4299084999366,
+      "environment": {
+        "python": "3.12.14",
+        "implementation": "CPython",
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "machine": "arm64",
+        "packages": {
+          "numpy": "2.5.4",
+          "pandas": "3.1.0",
+          "scikit-learn": "1.9.1",
+          "tensorflow": "2.21.0",
+          "keras": "3.15.1",
+          "scipy": "1.18.1"
+        }
+      }
+    },
+    {
+      "dir": "runs/seed2027",
+      "outer_seed": 2027,
+      "commit": "fbd95d5d300f3786d8443bbb818b6431653c7329",
+      "status": "VALID",
+      "elapsed_seconds": 1875.7242454580264,
+      "environment": {
+        "python": "3.12.14",
+        "implementation": "CPython",
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "machine": "arm64",
+        "packages": {
+          "numpy": "2.5.4",
+          "pandas": "3.1.0",
+          "scikit-learn": "1.9.1",
+          "tensorflow": "2.21.0",
+          "keras": "3.15.1",
+          "scipy": "1.18.1"
+        }
+      }
+    },
+    {
+      "dir": "runs/seed2028",
+      "outer_seed": 2028,
+      "commit": "fbd95d5d300f3786d8443bbb818b6431653c7329",
+      "status": "VALID",
+      "elapsed_seconds": 1881.7796996670077,
+      "environment": {
+        "python": "3.12.14",
+        "implementation": "CPython",
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "machine": "arm64",
+        "packages": {
+          "numpy": "2.5.4",
+          "pandas": "3.1.0",
+          "scikit-learn": "1.9.1",
+          "tensorflow": "2.21.0",
+          "keras": "3.15.1",
+          "scipy": "1.18.1"
+        }
+      }
+    }
+  ],
+  "config": {
+    "n_specimens": 56,
+    "n_outer": 5,
+    "n_inner": 3,
+    "epochs": 100,
+    "n_loss_profiles": 4,
+    "seed": 2026
+  },
+  "variants": [
+    {
+      "variant": "physics",
+      "parameter_count": 0,
+      "n_runs": 3,
+      "mae_log_mean": 0.7730123527218243,
+      "mae_log_min": 0.7730123527218244,
+      "mae_log_max": 0.7730123527218244,
+      "rmse_log_mean": 0.9737763386269297,
+      "bias_log_mean": -0.725155199660464,
+      "late_mean": 7.0,
+      "late_min": 7,
+      "late_max": 7,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.0,
+      "fit_seconds_mean": 2.6111646244923275e-05,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": null
+    },
+    {
+      "variant": "constant",
+      "parameter_count": 1,
+      "n_runs": 3,
+      "mae_log_mean": 0.5445502765682604,
+      "mae_log_min": 0.535719781958314,
+      "mae_log_max": 0.554576590666309,
+      "rmse_log_mean": 0.6602029733901036,
+      "bias_log_mean": 0.0008642818841694213,
+      "late_mean": 30.666666666666668,
+      "late_min": 30,
+      "late_max": 31,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.0,
+      "fit_seconds_mean": 0.00044054196526606876,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.22965789564166628,
+        "ci95_low": -0.3781083337048271,
+        "ci95_high": -0.0773865184249174,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "ridge",
+      "parameter_count": 15,
+      "n_runs": 3,
+      "mae_log_mean": 0.26502232358792616,
+      "mae_log_min": 0.24687671812295056,
+      "mae_log_max": 0.27905494618583965,
+      "rmse_log_mean": 0.3398127312253909,
+      "bias_log_mean": -0.005048065907869548,
+      "late_mean": 31.0,
+      "late_min": 30,
+      "late_max": 32,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.0,
+      "fit_seconds_mean": 3.4936130553251132,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.4939574065359848,
+        "ci95_low": -0.6605184308201322,
+        "ci95_high": -0.3437641080868298,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "warp_net",
+      "parameter_count": 513,
+      "n_runs": 3,
+      "mae_log_mean": 0.38287834127763215,
+      "mae_log_min": 0.34943098855703486,
+      "mae_log_max": 0.4072858786019359,
+      "rmse_log_mean": 0.48172889092630883,
+      "bias_log_mean": 0.013177366626885914,
+      "late_mean": 29.666666666666668,
+      "late_min": 27,
+      "late_max": 31,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.0,
+      "fit_seconds_mean": 137.30748943060948,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.4235813641647896,
+        "ci95_low": -0.6100850301243889,
+        "ci95_high": -0.2468339658076312,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "decoder",
+      "parameter_count": 1280,
+      "n_runs": 3,
+      "mae_log_mean": 0.31356064382058774,
+      "mae_log_min": 0.31163208502469625,
+      "mae_log_max": 0.3153426544995646,
+      "rmse_log_mean": 0.40076011736586753,
+      "bias_log_mean": -0.03773408696979859,
+      "late_mean": 26.0,
+      "late_min": 24,
+      "late_max": 27,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.0772554874420166,
+      "fit_seconds_mean": 1650.1915421382291,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.45930516078432215,
+        "ci95_low": -0.6227241232792566,
+        "ci95_high": -0.31138461565468584,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "decoder_fixed_default",
+      "parameter_count": 1008,
+      "n_runs": 1,
+      "mae_log_mean": 0.38219369368601963,
+      "mae_log_min": 0.38219369368601963,
+      "mae_log_max": 0.38219369368601963,
+      "rmse_log_mean": 0.4932229305191154,
+      "bias_log_mean": 0.0166426223910004,
+      "late_mean": 29.0,
+      "late_min": 29,
+      "late_max": 29,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.0724070817232132,
+      "fit_seconds_mean": 206.0444393339567,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.3908186590358048,
+        "ci95_low": -0.5682725078133941,
+        "ci95_high": -0.22462441830622346,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "ablation_no_shape",
+      "parameter_count": 1008,
+      "n_runs": 1,
+      "mae_log_mean": 0.37810028629362386,
+      "mae_log_min": 0.37810028629362386,
+      "mae_log_max": 0.37810028629362386,
+      "rmse_log_mean": 0.47836208790202916,
+      "bias_log_mean": 0.015762716425659802,
+      "late_mean": 29.0,
+      "late_min": 29,
+      "late_max": 29,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.08356115967035294,
+      "fit_seconds_mean": 226.2042995840311,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.3949120664282006,
+        "ci95_low": -0.5682790531340299,
+        "ci95_high": -0.23232871580699266,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "ablation_no_ratio",
+      "parameter_count": 1008,
+      "n_runs": 1,
+      "mae_log_mean": 0.38211208818664055,
+      "mae_log_min": 0.38211208818664055,
+      "mae_log_max": 0.38211208818664055,
+      "rmse_log_mean": 0.48317254433061996,
+      "bias_log_mean": 0.018924980708622315,
+      "late_mean": 29.0,
+      "late_min": 29,
+      "late_max": 29,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.07193984091281891,
+      "fit_seconds_mean": 207.6937677091919,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.3909002645351839,
+        "ci95_low": -0.5649900534877368,
+        "ci95_high": -0.22734738055552353,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "ablation_no_concavity",
+      "parameter_count": 1008,
+      "n_runs": 1,
+      "mae_log_mean": 0.40307368705450247,
+      "mae_log_min": 0.40307368705450247,
+      "mae_log_max": 0.40307368705450247,
+      "rmse_log_mean": 0.5227862054642057,
+      "bias_log_mean": 0.010537341518152887,
+      "late_mean": 28.0,
+      "late_min": 28,
+      "late_max": 28,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.049026891589164734,
+      "fit_seconds_mean": 168.1804048330523,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.369938665667322,
+        "ci95_low": -0.548910175402296,
+        "ci95_high": -0.19994024672421748,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "ablation_no_warp",
+      "parameter_count": 1008,
+      "n_runs": 1,
+      "mae_log_mean": 0.37824944159019136,
+      "mae_log_min": 0.37824944159019136,
+      "mae_log_max": 0.37824944159019136,
+      "rmse_log_mean": 0.4792843030902867,
+      "bias_log_mean": 0.024432724743739826,
+      "late_mean": 29.0,
+      "late_min": 29,
+      "late_max": 29,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.07216926664113998,
+      "fit_seconds_mean": 182.19251395901665,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.3947629111316331,
+        "ci95_low": -0.5689084485154329,
+        "ci95_high": -0.23153765762777015,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "ablation_no_penalties",
+      "parameter_count": 1008,
+      "n_runs": 1,
+      "mae_log_mean": 0.3989712749302582,
+      "mae_log_min": 0.3989712749302582,
+      "mae_log_max": 0.3989712749302582,
+      "rmse_log_mean": 0.5176188287703205,
+      "bias_log_mean": 0.015321959986153948,
+      "late_mean": 29.0,
+      "late_min": 29,
+      "late_max": 29,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.07805213332176208,
+      "fit_seconds_mean": 180.24582687497605,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.37404107779156626,
+        "ci95_low": -0.5517441720497819,
+        "ci95_high": -0.20446033403259697,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    },
+    {
+      "variant": "ablation_small_penalties",
+      "parameter_count": 1008,
+      "n_runs": 1,
+      "mae_log_mean": 0.398786243738709,
+      "mae_log_min": 0.398786243738709,
+      "mae_log_max": 0.398786243738709,
+      "rmse_log_mean": 0.5173564104844668,
+      "bias_log_mean": 0.015530837840578135,
+      "late_mean": 29.0,
+      "late_min": 29,
+      "late_max": 29,
+      "n_expected": 56,
+      "w1_shape_distance_mean": 0.07431410253047943,
+      "fit_seconds_mean": 213.60126345790923,
+      "status": "VALID",
+      "bootstrap_vs_physics_first_run": {
+        "point": -0.3742261089831154,
+        "ci95_low": -0.5519963784180507,
+        "ci95_high": -0.20456567003870166,
+        "n_boot": 2000,
+        "n_specimens": 56,
+        "method": "percentile bootstrap over blind specimens, models held fixed"
+      }
+    }
+  ],
+  "init_seed_runs": [
+    {
+      "run": "runs/main",
+      "init_seed_offset": 1,
+      "status": "VALID",
+      "mae_log": 0.34719180867528543,
+      "rmse_log": 0.4579604971006773,
+      "bias_log": -0.016368165411178342,
+      "late": 29,
+      "n_expected": 56,
+      "n_valid": 56,
+      "invalid_specimens": []
+    },
+    {
+      "run": "runs/main",
+      "init_seed_offset": 2,
+      "status": "VALID",
+      "mae_log": 0.3632200978313464,
+      "rmse_log": 0.43499931000423214,
+      "bias_log": 0.06709573957814848,
+      "late": 33,
+      "n_expected": 56,
+      "n_valid": 56,
+      "invalid_specimens": []
+    },
+    {
+      "run": "runs/main",
+      "init_seed_offset": 3,
+      "status": "VALID",
+      "mae_log": 0.329814845017523,
+      "rmse_log": 0.40623293524954435,
+      "bias_log": -0.027100665031653395,
+      "late": 30,
+      "n_expected": 56,
+      "n_valid": 56,
+      "invalid_specimens": []
+    }
+  ],
+  "notes": [
+    "Across-run spread mixes outer-split variability with optimisation variability (different folds change training sets and seeds).",
+    "init_seed_runs vary only the final-fit initialisation and batch order on fixed folds and fixed selected configurations.",
+    "bootstrap_vs_physics_first_run resamples blind specimens with the models fixed (statistical uncertainty of the metric), first run only.",
+    "W1 shape distance is measured against synthetic physics reference curves, not measured crack-growth curves."
+  ]
+}
