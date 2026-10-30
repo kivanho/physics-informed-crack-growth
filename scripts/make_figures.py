@@ -1,6 +1,6 @@
 """Render the README hero figure (light and dark variants) from synthetic data.
 
-    python -m picg.run --out examples/synthetic_blind_predictions.csv   # optional, ~5 min
+    python -m picg.benchmark --out runs/main   # optional; then pass --predictions runs/main/predictions.csv
     python scripts/make_figures.py
 
 Panels:
@@ -50,7 +50,7 @@ def decoder_example(seed: int = 2026) -> dict[str, np.ndarray]:
     numeric, categorical = feature_columns()
     train_idx, test_idx = outer_splits(len(dataset.cycles), 5, seed)[0]
     x_tr, x_te = fit_transform_features(dataset.table, train_idx, test_idx, numeric, categorical)
-    config = TrainConfig(max_epochs=100, patience=15)
+    config = TrainConfig(max_epochs=60)  # fixed budget; the benchmark chooses epochs on inner splits
     model = train_model(_batch(dataset, x_tr, train_idx), dataset.event_grid, config, seed=seed + 1)
 
     # Blind specimen whose physics crossing is closest to the fold median.
@@ -156,8 +156,10 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=ROOT / "docs")
     args = parser.parse_args()
     if not args.predictions.exists():
-        raise SystemExit(f"{args.predictions} not found; run `python -m picg.run --out {args.predictions}` first.")
+        raise SystemExit(f"{args.predictions} not found; run `python -m picg.benchmark --out runs/main` and pass --predictions runs/main/predictions.csv.")
     predictions = pd.read_csv(args.predictions)
+    if "hybrid_cycles" not in predictions.columns:  # benchmark output names the column after the variant
+        predictions = predictions.rename(columns={"decoder_cycles": "hybrid_cycles"})
     example = decoder_example()
     args.out_dir.mkdir(parents=True, exist_ok=True)
     for name, theme in THEMES.items():

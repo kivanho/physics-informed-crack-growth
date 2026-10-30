@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      full_benchmark:
+        description: "Also run the full benchmark (about 30-40 min on 2 cores)"
+        type: boolean
+        default: false
+
+env:
+  TF_CPP_MIN_LOG_LEVEL: "2"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Smoke benchmark (tiny budget; fails on numerical or coverage errors)
+        run: python -m picg.benchmark --smoke --out runs/ci-smoke
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-run
+          path: runs/ci-smoke
+
+  full-benchmark:
+    if: github.event_name == 'workflow_dispatch' && inputs.full_benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+      - name: Full benchmark (one outer-split seed, init-seed reruns)
+        run: python -m picg.benchmark --out runs/main --init-seeds 1 2 3
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-benchmark
+          path: runs/main

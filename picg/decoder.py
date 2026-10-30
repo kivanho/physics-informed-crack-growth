@@ -48,6 +48,11 @@ from .data import DEFAULT_KNOTS
 from .physics import DEFAULT_MATERIAL, SyntheticMaterial
 
 EPSILON = 1e-8
+# Secant slopes below this magnitude are treated as flat. The PCHIP harmonic
+# mean of two such slopes would itself be below the floor, so the interpolant
+# is unchanged to within SLOPE_FLOOR, but no reciprocal of a tiny number is
+# ever formed in float32.
+SLOPE_FLOOR = 1e-12
 
 
 @dataclass(frozen=True)
@@ -65,16 +70,26 @@ class DecoderConfig:
 
 
 def _pchip_slopes_np(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Fritsch-Carlson (PCHIP) knot slopes; mirrors ``_pchip_slopes_tf``.
+
+    Interior slopes are the weighted harmonic mean of the two neighbouring
+    secant slopes where those agree in sign and both exceed ``SLOPE_FLOOR``
+    in magnitude; otherwise the knot is a local extremum or a flat segment
+    and the slope is zero (which is what keeps the interpolant shape
+    preserving).
+    """
+
     h = np.diff(x)
     delta = np.diff(y) / np.maximum(h, EPSILON)
     slopes = np.zeros_like(y, dtype=float)
     slopes[0], slopes[-1] = delta[0], delta[-1]
     for i in range(1, len(y) - 1):
         d_left, d_right = delta[i - 1], delta[i]
-        if d_left * d_right > 0.0:
+        if d_left * d_right > 0.0 and min(abs(d_left), abs(d_right)) > SLOPE_FLOOR:
             w1 = 2.0 * h[i] + h[i - 1]
             w2 = h[i] + 2.0 * h[i - 1]
-            slopes[i] = (w1 + w2) / (w1 / d_left + w2 / d_right)
+            # product form of (w1 + w2) / (w1 / d_left + w2 / d_right): no reciprocals
+            slopes[i] = (w1 + w2) * d_left * d_right / (w1 * d_right + w2 * d_left)
     return slopes
 
 
@@ -97,15 +112,32 @@ def monotone_cubic_interpolate_np(eval_grid: np.ndarray, knot_grid: np.ndarray, 
 
 
 def _pchip_slopes_tf(x: tf.Tensor, y: tf.Tensor) -> tf.Tensor:
+    """Batched PCHIP slopes with finite forward values *and* finite gradients.
+
+    The naive form ``(w1 + w2) / (w1 / d_left + w2 / d_right)`` divides by the
+    secant slopes before the sign/zero mask is applied. For equal adjacent knot
+    values ``d = 0`` gives ``inf`` intermediates, and although ``tf.where``
+    masks them in the forward pass, the gradient of the masked branch is
+    ``0 * inf = nan`` and poisons every upstream parameter. Here both branches
+    of every ``tf.where`` are finite: the secant slopes are first replaced by
+    ``1`` wherever the harmonic mean is not used, and the harmonic mean is
+    written in product form so no reciprocal of a small slope is ever formed.
+    """
+
     h = x[1:] - x[:-1]
     delta = (y[:, 1:] - y[:, :-1]) / tf.maximum(h[None, :], EPSILON)
     d_left, d_right = delta[:, :-1], delta[:, 1:]
-    w1 = 2.0 * h[1:] + h[:-1]
-    w2 = h[1:] + 2.0 * h[:-1]
-    denominator = w1[None, :] / d_left + w2[None, :] / d_right
-    safe = tf.where(tf.abs(denominator) > EPSILON, denominator, tf.ones_like(denominator))
-    internal = (w1[None, :] + w2[None, :]) / safe
-    internal = tf.where(d_left * d_right > 0.0, internal, tf.zeros_like(internal))
+    w1 = (2.0 * h[1:] + h[:-1])[None, :]
+    w2 = (h[1:] + 2.0 * h[:-1])[None, :]
+    active = tf.logical_and(
+        d_left * d_right > 0.0,
+        tf.minimum(tf.abs(d_left), tf.abs(d_right)) > SLOPE_FLOOR,
+    )
+    safe_left = tf.where(active, d_left, tf.ones_like(d_left))
+    safe_right = tf.where(active, d_right, tf.ones_like(d_right))
+    # |w1 * safe_right + w2 * safe_left| >= min(w1, w2) * (|d_left| + |d_right|) > 0 on the active set
+    harmonic = (w1 + w2) * safe_left * safe_right / (w1 * safe_right + w2 * safe_left)
+    internal = tf.where(active, harmonic, tf.zeros_like(harmonic))
     return tf.concat([delta[:, :1], internal, delta[:, -1:]], axis=1)
 
 
